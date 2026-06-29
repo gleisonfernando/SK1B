@@ -678,10 +678,12 @@ document.querySelectorAll(".nav-item[data-page]").forEach(function(el){
       fetchWellbeingFromSheets(function(){
         document.getElementById("content").innerHTML = render(pg);
         afterRender(pg);
+        if(pg==="avaliacao") attachSaveBtn();
       });
     } else {
       document.getElementById("content").innerHTML = render(pg);
       afterRender(pg);
+      if(pg==="avaliacao") attachSaveBtn();
     }
   });
 });
@@ -796,64 +798,68 @@ function rAvaliacao(){
   _aTab="form";
   var atlOps=DB.atletas.map(function(a){return '<option value="'+a.id+'">'+a.nome+' ('+a.pos+')</option>';}).join("");
   var html='';
+  // Tab bar
   html+='<div class="tab-bar">';
   html+='<button class="tab active" id="tab-form" onclick="swAv(\'form\')">'+t("register_assessment")+'</button>';
   html+='<button class="tab" id="tab-ev" onclick="swAv(\'ev\')">'+t("test_evolution")+'</button>';
   html+='<button class="tab" id="tab-asym" onclick="swAv(\'asym\')">'+t("asym_tab")+'</button>';
   html+='</div>';
 
-  // ── FORM TAB ────────────────────────────────────────────────────
+  // FORM TAB
   html+='<div id="av-form">';
   html+='<div class="alert alert-warn mb16"><i class="ti ti-alert-triangle"></i>'+t("assessment_seq")+'</div>';
   html+='<div class="g2">';
 
-  // Card identificação
-  html+='<div class="card"><div class="card-title"><i class="ti ti-user"></i>'+t("identification")+'</div>';
+  // Card 1 - Identificação
+  html+='<div class="card">';
+  html+='<div class="card-title"><i class="ti ti-user"></i>'+t("identification")+'</div>';
   html+='<div class="form-group"><label class="form-label">'+t("ll_atleta")+'</label><select id="av-atl" onchange="calcComposicao()">'+atlOps+'</select></div>';
   html+='<div class="form-group"><label class="form-label">'+t("assessment_period")+'</label><select id="av-per">';
-  html+='<option value="Sem. 0">'+t("sem0")+'</option><option value="Sem. 4">'+t("sem4")+'</option>';
-  html+='<option value="Sem. 8">'+t("sem8")+'</option><option value="Sem. 12">'+t("sem12")+'</option>';
-  html+='<option value="Sem. 16">'+t("sem16")+'</option></select></div>';
+  html+='<option value="Sem. 0">'+t("sem0")+'</option>';
+  html+='<option value="Sem. 4">'+t("sem4")+'</option>';
+  html+='<option value="Sem. 8">'+t("sem8")+'</option>';
+  html+='<option value="Sem. 12">'+t("sem12")+'</option>';
+  html+='<option value="Sem. 16">'+t("sem16")+'</option>';
+  html+='</select></div>';
   html+='<div class="form-group"><label class="form-label">'+t("assessment_date")+'</label><input type="date" id="av-dt" value="'+todayStr()+'"></div>';
   html+='<div class="form-group"><label class="form-label">'+t("obs_lbl")+'</label><textarea id="av-obs" placeholder="'+t("obs_ph")+'"></textarea></div>';
   html+='</div>';
 
-  // Card dados corporais básicos
-  html+='<div class="card"><div class="card-title"><i class="ti ti-ruler-measure"></i>'+t("body_data")+'</div>';
+  // Card 2 - Dados corporais
+  html+='<div class="card">';
+  html+='<div class="card-title"><i class="ti ti-ruler-measure"></i>'+t("body_data")+'</div>';
   html+='<div class="g2i">';
   html+='<div class="form-group"><label class="form-label">'+t("weight_col")+' (kg)</label><input type="number" step="0.1" id="av-peso" placeholder="75.0" oninput="calcComposicao()"></div>';
   html+='<div class="form-group"><label class="form-label">'+t("height_cm")+' (cm)</label><input type="number" id="av-alt" placeholder="178" oninput="calcComposicao()"></div>';
   html+='</div>';
-
-  // Perímetros para % gordura
   html+='<div style="margin:10px 0 6px;font-size:12px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.04em">'+t("perim_gordura")+'</div>';
   html+='<div class="g2i">';
   html+='<div class="form-group"><label class="form-label">'+t("neck_cm")+' (cm)</label><input type="number" step="0.1" id="av-pescoco" placeholder="37.5" oninput="calcComposicao()"></div>';
   html+='<div class="form-group"><label class="form-label">'+t("waist_cm")+' (cm)</label><input type="number" step="0.1" id="av-cin" placeholder="82.0" oninput="calcComposicao()"></div>';
-  html+='<div class="form-group"><label class="form-label">'+t("hip_cm")+' (cm) <small style="color:var(--text-3)">J&P</small></label><input type="number" step="0.1" id="av-quad" placeholder="97.0" oninput="calcComposicao()"></div>';
+  html+='<div class="form-group"><label class="form-label">'+t("hip_cm")+' (cm)</label><input type="number" step="0.1" id="av-quad" placeholder="97.0" oninput="calcComposicao()"></div>';
   html+='</div>';
-
-  // Resultado composição
   html+='<div id="composicao-result" style="margin-top:8px"></div>';
   html+='</div>';
 
-  // Card assimetria bilateral
-  html+='<div class="card"><div class="card-title"><i class="ti ti-arrows-left-right"></i>'+t("bilateral_title")+'</div>';
-  html+='<div style="margin-bottom:10px;font-size:12px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.04em">'+t("thigh_lbl")+' (cm)</div>';
+  // Card 3 - Assimetria bilateral
+  html+='<div class="card">';
+  html+='<div class="card-title"><i class="ti ti-arrows-left-right"></i>'+t("bilateral_title")+'</div>';
+  html+='<div style="margin-bottom:8px;font-size:12px;font-weight:600;color:var(--text-2);text-transform:uppercase">'+t("thigh_lbl")+' (cm)</div>';
   html+='<div class="g2i">';
-  html+='<div class="form-group"><label class="form-label">⬅ '+t("left")+'</label><input type="number" step="0.1" id="av-coxa-e" placeholder="52.0" oninput="calcAssimetria()"></div>';
-  html+='<div class="form-group"><label class="form-label">'+t("right")+' ➡</label><input type="number" step="0.1" id="av-coxa-d" placeholder="53.0" oninput="calcAssimetria()"></div>';
+  html+='<div class="form-group"><label class="form-label">&#8592; '+t("left")+'</label><input type="number" step="0.1" id="av-coxa-e" placeholder="52.0" oninput="calcAssimetria()"></div>';
+  html+='<div class="form-group"><label class="form-label">'+t("right")+' &#8594;</label><input type="number" step="0.1" id="av-coxa-d" placeholder="53.0" oninput="calcAssimetria()"></div>';
   html+='</div>';
-  html+='<div style="margin-bottom:10px;font-size:12px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.04em">'+t("calf_lbl")+' (cm)</div>';
+  html+='<div style="margin-bottom:8px;font-size:12px;font-weight:600;color:var(--text-2);text-transform:uppercase">'+t("calf_lbl")+' (cm)</div>';
   html+='<div class="g2i">';
-  html+='<div class="form-group"><label class="form-label">⬅ '+t("left")+'</label><input type="number" step="0.1" id="av-pant-e" placeholder="36.0" oninput="calcAssimetria()"></div>';
-  html+='<div class="form-group"><label class="form-label">'+t("right")+' ➡</label><input type="number" step="0.1" id="av-pant-d" placeholder="37.0" oninput="calcAssimetria()"></div>';
+  html+='<div class="form-group"><label class="form-label">&#8592; '+t("left")+'</label><input type="number" step="0.1" id="av-pant-e" placeholder="36.0" oninput="calcAssimetria()"></div>';
+  html+='<div class="form-group"><label class="form-label">'+t("right")+' &#8594;</label><input type="number" step="0.1" id="av-pant-d" placeholder="37.0" oninput="calcAssimetria()"></div>';
   html+='</div>';
   html+='<div id="assimetria-result"></div>';
   html+='</div>';
 
-  // Card testes físicos
-  html+='<div class="card"><div class="card-title"><i class="ti ti-run"></i>'+t("physical_tests")+'</div>';
+  // Card 4 - Testes físicos
+  html+='<div class="card">';
+  html+='<div class="card-title"><i class="ti ti-run"></i>'+t("physical_tests")+'</div>';
   html+='<div class="g2i">';
   html+='<div class="form-group"><label class="form-label">'+t("plank_s")+'</label><input type="number" id="av-pr" placeholder="95"></div>';
   html+='<div class="form-group"><label class="form-label">'+t("illinois_s")+'</label><input type="number" step="0.1" id="av-il" placeholder="15.8"></div>';
@@ -861,25 +867,28 @@ function rAvaliacao(){
   html+='<div class="form-group"><label class="form-label">'+t("sprint30")+'</label><input type="number" step="0.01" id="av-s30" placeholder="4.15"></div>';
   html+='<div class="form-group"><label class="form-label">'+t("broad_jump")+'</label><input type="number" id="av-sal" placeholder="205"></div>';
   html+='<div class="form-group"><label class="form-label">'+t("bip_m")+'</label><input type="number" id="av-bip" placeholder="1360"></div>';
-  html+='</div></div>';
+  html+='</div>';
+  html+='</div>';
 
-  // Card referências
+  // Card 5 - Referências + botão salvar
   html+='<div class="card" style="display:flex;flex-direction:column;gap:10px">';
   html+='<div class="card-title"><i class="ti ti-clipboard-check"></i>'+t("ref_table")+'</div>';
   html+='<table><thead><tr><th>'+t("test_col")+'</th><th>'+t("excellent")+'</th><th>'+t("good")+'</th><th>'+t("regular")+'</th></tr></thead><tbody>';
-  html+='<tr><td>% '+t("fat_col")+' ('+t("athletes")+')</td><td>&lt;10%</td><td>10-14%</td><td>15-20%</td></tr>';
+  html+='<tr><td>% Gordura</td><td>&lt;10%</td><td>10-14%</td><td>15-20%</td></tr>';
   html+='<tr><td>BIP</td><td>&gt;1800m</td><td>1400-1800m</td><td>1000-1400m</td></tr>';
   html+='<tr><td>Sprint 10m</td><td>&lt;1,80s</td><td>1,80-1,99s</td><td>2,00-2,19s</td></tr>';
   html+='<tr><td>Sprint 30m</td><td>&lt;4,00s</td><td>4,00-4,30s</td><td>4,31-4,60s</td></tr>';
   html+='<tr><td>'+t("broad_jump")+'</td><td>&gt;220cm</td><td>200-220cm</td><td>180-199cm</td></tr>';
   html+='<tr><td>'+t("plank_s")+'</td><td>&gt;120s</td><td>90-120s</td><td>60-89s</td></tr>';
-  html+='<tr><td>'+t("asym_ref")+'</td><td>&lt;0,5cm</td><td>0,5-1cm</td><td>&gt;1cm ⚠</td></tr>';
+  html+='<tr><td>'+t("asym_ref")+'</td><td>&lt;0,5cm</td><td>0,5-1cm</td><td>&gt;1cm</td></tr>';
   html+='</tbody></table>';
-  html+='<button class="btn primary" style="margin-top:auto;justify-content:center" onclick="saveAv()"><i class="ti ti-device-floppy"></i>'+t("save_assessment")+'</button>';
+  html+='<button id="btn-save-av" onclick="saveAv()" class="btn primary" style="margin-top:auto;justify-content:center"><i class="ti ti-device-floppy"></i> '+t("save_assessment")+'</button>';
   html+='</div>';
-  html+='</div></div>';
 
-  // ── EVOLUTION TAB ───────────────────────────────────────────────
+  html+='</div>'; // end g2
+  html+='</div>'; // end av-form
+
+  // EVOLUTION TAB
   html+='<div id="av-ev" class="hidden"><div class="g2 mb16">';
   html+='<div class="card"><div class="card-title"><i class="ti ti-run"></i>'+t("bip_chart")+'</div><div style="position:relative;height:220px"><canvas id="ch-bip" role="img" aria-label="bip">.</canvas></div></div>';
   html+='<div class="card"><div class="card-title"><i class="ti ti-bolt"></i>'+t("s10_chart")+'</div><div style="position:relative;height:220px"><canvas id="ch-s10" role="img" aria-label="s10">.</canvas></div></div>';
@@ -889,11 +898,12 @@ function rAvaliacao(){
   html+='<div class="card"><div class="card-title"><i class="ti ti-percentage"></i>'+t("fat_chart")+'</div><div style="position:relative;height:220px"><canvas id="ch-gd" role="img" aria-label="fat">.</canvas></div></div>';
   html+='</div></div>';
 
-  // ── ASYMMETRY TAB ───────────────────────────────────────────────
+  // ASYMMETRY TAB
   html+='<div id="av-asym" class="hidden">';
   html+='<div class="form-group" style="max-width:300px;margin-bottom:20px">';
   html+='<label class="form-label">'+t("ll_atleta")+'</label>';
-  html+='<select id="asym-atl" onchange="renderAssymPanel()">'+atlOps+'</select></div>';
+  html+='<select id="asym-atl" onchange="renderAssymPanel()">'+atlOps+'</select>';
+  html+='</div>';
   html+='<div id="asym-panel"></div>';
   html+='</div>';
 
@@ -908,8 +918,16 @@ function swAv(tab){
   document.getElementById("av-form").classList.toggle("hidden",tab!=="form");
   document.getElementById("av-ev").classList.toggle("hidden",tab!=="ev");
   document.getElementById("av-asym").classList.toggle("hidden",tab!=="asym");
+  if(tab==="form") attachSaveBtn();
   if(tab==="ev") bldAvCharts();
   if(tab==="asym") renderAssymPanel();
+}
+
+function attachSaveBtn(){
+  setTimeout(function(){
+    var btn=document.getElementById("btn-save-av");
+    if(btn){ btn.onclick=function(){ saveAv(); }; }
+  },100);
 }
 function getEl(id){ var el=document.getElementById(id); return el?el.value:""; }
 
