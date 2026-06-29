@@ -935,8 +935,23 @@ function saveAv(){
   try {
   var aid=document.getElementById("av-atl").value;
   if(!aid){alert(t("select_athlete"));return;}
-  if(!DB.avaliacoes[aid])DB.avaliacoes[aid]={bip:[],s10:[],s30:[],salto:[],prancha:[],gord:[],gordJP:[],peso:[],massaMagra:[],massaGorda:[],coxaE:[],coxaD:[],pantE:[],pantD:[]};
+  if(!DB.avaliacoes) DB.avaliacoes={};
+  if(!DB.avaliacoes[aid]) DB.avaliacoes[aid]={};
   var av=DB.avaliacoes[aid];
+  if(!av.bip)       av.bip=[];
+  if(!av.s10)       av.s10=[];
+  if(!av.s30)       av.s30=[];
+  if(!av.salto)     av.salto=[];
+  if(!av.prancha)   av.prancha=[];
+  if(!av.gord)      av.gord=[];
+  if(!av.gordJP)    av.gordJP=[];
+  if(!av.peso)      av.peso=[];
+  if(!av.massaMagra)av.massaMagra=[];
+  if(!av.massaGorda)av.massaGorda=[];
+  if(!av.coxaE)     av.coxaE=[];
+  if(!av.coxaD)     av.coxaD=[];
+  if(!av.pantE)     av.pantE=[];
+  if(!av.pantD)     av.pantD=[];
   var comp=window._lastComposicao||{};
   var asym=window._lastAssimetria||{};
   var atl=DB.atletas.find(function(x){return x.id===aid;});
