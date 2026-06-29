@@ -918,36 +918,30 @@ function saveAv(){
   if(!aid){alert(t("select_athlete"));return;}
   if(!DB.avaliacoes[aid])DB.avaliacoes[aid]={bip:[],s10:[],s30:[],salto:[],prancha:[],gord:[],gordJP:[],peso:[],massaMagra:[],massaGorda:[],coxaE:[],coxaD:[],pantE:[],pantD:[]};
   var av=DB.avaliacoes[aid];
+  var comp=window._lastComposicao||{};
+  var asym=window._lastAssimetria||{};
+  var atl=DB.atletas.find(function(x){return x.id===aid;});
+  var periodo=document.getElementById("av-per")?document.getElementById("av-per").value:"";
   av.bip.push(parseInt(getEl("av-bip"))||0);
   av.s10.push(parseFloat(getEl("av-s10"))||0);
   av.s30.push(parseFloat(getEl("av-s30"))||0);
   av.salto.push(parseInt(getEl("av-sal"))||0);
   av.prancha.push(parseInt(getEl("av-pr"))||0);
   av.peso.push(parseFloat(getEl("av-peso"))||0);
-  // Composição corporal
-  var comp = window._lastComposicao||{};
   av.gord.push(comp.gordNavy||0);
   av.gordJP.push(comp.gordJP||0);
   av.massaMagra.push(comp.massaMagra||0);
   av.massaGorda.push(comp.massaGorda||0);
-  // Assimetria
-  var asym = window._lastAssimetria||{};
   av.coxaE.push(asym.coxaE||0);
   av.coxaD.push(asym.coxaD||0);
   av.pantE.push(asym.pantE||0);
   av.pantD.push(asym.pantD||0);
   saveDB();
-  // Sync to Google Sheets if configured
   if(SHEETS_URL){
-    var atl = DB.atletas.find(function(x){return x.id===aid;});
-    var av2 = DB.avaliacoes[aid];
-    var last = function(arr){ return arr&&arr.length?arr[arr.length-1]:0; };
-    var comp = window._lastComposicao||{};
-    var asym = window._lastAssimetria||{};
-    var params = "acao=save_avaliacao"
+    var params="acao=save_avaliacao"
       +"&atleta_id="+encodeURIComponent(aid)
       +"&atleta_nome="+encodeURIComponent(atl?atl.nome:"")
-      +"&periodo="+encodeURIComponent(document.getElementById("av-per").value||"")
+      +"&periodo="+encodeURIComponent(periodo)
       +"&peso="+encodeURIComponent(getEl("av-peso")||0)
       +"&gord="+(comp.gordNavy||0)
       +"&gordJP="+(comp.gordJP||0)
