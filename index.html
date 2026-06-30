@@ -358,6 +358,7 @@ function fetchWellbeingFromSheets(callback) {
             motivacao: parseInt(d.motivacao)||3,
             estresse:  parseInt(d.estresse)||3,
             igp:       parseInt(d.igp)||0,
+            horas_sono:parseFloat(d.horas_sono)||0,
             data:      d.data||"",
             hoje:      d.hoje||false
           };
@@ -1089,10 +1090,11 @@ function rWellbeing(){
   var atlOps=DB.atletas.map(function(a){return '<option value="'+a.id+'">'+a.nome+'</option>';}).join("");
   var html='<div class="g2">';
   var sheetsNote = SHEETS_URL ? '<span style="font-size:10px;font-weight:400;color:var(--green-700);margin-left:6px;background:var(--green-50);padding:2px 8px;border-radius:10px">&#x1F517; Google Sheets</span>' : '';
+  var sleepVal = (atl && DB.wellbeing[atl.id] && DB.wellbeing[atl.id].horas_sono) ? DB.wellbeing[atl.id].horas_sono : "";
   html+='<div class="card"><div class="card-title"><i class="ti ti-user"></i>'+t("wb_register")+sheetsNote+'</div>';
   html+='<div class="form-group"><label class="form-label">'+t("ll_atleta")+'</label><select id="wb-sel" onchange="chWb(this.value)">'+atlOps+'</select></div>';
   html+='<div class="form-group"><label class="form-label">'+todayStr()+'</label><input type="date" value="'+todayStr()+'"></div>';
-  html+='<div class="form-group"><label class="form-label">'+t("sleep_hours")+'</label><input type="number" step="0.5" id="wb-hrs" placeholder="7.5" min="0" max="14"></div>';
+  html+='<div class="form-group"><label class="form-label">'+t("sleep_hours")+'</label><input type="number" step="0.5" id="wb-hrs" placeholder="7.5" min="0" max="14" value="'+sleepVal+'"></div>';
   html+='<div style="margin:14px 0 6px;padding:14px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md)">';
   cfg.forEach(function(c){
     var btns="";
@@ -1127,7 +1129,15 @@ function rWellbeing(){
   html+='</div></div>';
   return html;
 }
-function chWb(id){_wb=Object.assign({sono:3,fadiga:3,dor:3,motivacao:3,estresse:3},DB.wellbeing[id]||{});updWb();}
+function chWb(id){
+  _wb=Object.assign({sono:3,fadiga:3,dor:3,motivacao:3,estresse:3},DB.wellbeing[id]||{});
+  var sleepEl=document.getElementById("wb-hrs");
+  if(sleepEl){
+    var sv=(DB.wellbeing[id]&&DB.wellbeing[id].horas_sono)?DB.wellbeing[id].horas_sono:"";
+    sleepEl.value=sv;
+  }
+  updWb();
+}
 function setWb(k,v){
   _wb[k]=v;
   document.getElementById("rb-"+k).querySelectorAll(".rating-btn").forEach(function(b,i){b.classList.toggle("active",i+1===v);});
