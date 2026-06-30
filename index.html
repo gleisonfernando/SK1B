@@ -642,46 +642,18 @@ function setLang(lang) {
 // ═══ DB ═══════════════════════════════════════════════════════════
 var DB = {
   atletas:[
-    {id:"ATL001",nome:"Carlos Silva",pos:"ATA",nasc:"2001-03-14",peso:73.5,altura:178,gord:12.1,pe:"Direito",tel:"(11) 98000-0001",status:"Ativo"},
-    {id:"ATL002",nome:"Marcos Oliveira",pos:"VOL",nasc:"1998-07-22",peso:78.2,altura:182,gord:10.8,pe:"Direito",tel:"(11) 98000-0002",status:"Ativo"},
-    {id:"ATL003",nome:"Rafael Santos",pos:"ZAG",nasc:"2003-01-05",peso:82.0,altura:185,gord:14.3,pe:"Direito",tel:"(11) 98000-0003",status:"Ativo"},
-    {id:"ATL004",nome:"Pedro Alves",pos:"LD",nasc:"2000-11-30",peso:71.8,altura:174,gord:11.5,pe:"Direito",tel:"(11) 98000-0004",status:"Lesionado"},
-    {id:"ATL005",nome:"Lucas Pereira",pos:"MEI",nasc:"2002-05-19",peso:69.4,altura:172,gord:9.7,pe:"Esquerdo",tel:"(11) 98000-0005",status:"Ativo"}
+    {id:"ATL001",nome:"Gleison Fernando Abati",pos:"MEI",nasc:"1982-07-09",peso:0,altura:0,gord:0,pe:"Direito",tel:"",status:"Ativo"}
   ],
-  wellbeing:{
-    "ATL001":{sono:4,fadiga:3,dor:4,motivacao:5,estresse:4},
-    "ATL002":{sono:3,fadiga:2,dor:3,motivacao:4,estresse:3},
-    "ATL003":{sono:5,fadiga:5,dor:5,motivacao:5,estresse:5},
-    "ATL004":{sono:2,fadiga:1,dor:2,motivacao:3,estresse:2},
-    "ATL005":{sono:4,fadiga:4,dor:4,motivacao:5,estresse:4}
-  },
-  avaliacoes:{
-    "ATL001":{bip:[1240,1360,1480,1520],s10:[1.92,1.88,1.85,1.82],s30:[4.31,4.22,4.15,4.10],salto:[195,202,208,212],prancha:[85,95,105,110],gord:[14.2,13.1,12.4,12.1],peso:[76.0,74.5,73.8,73.5]},
-    "ATL002":{bip:[1400,1480,1560,1600],s10:[1.85,1.82,1.79,1.77],s30:[4.18,4.10,4.05,4.01],salto:[205,210,215,218],prancha:[95,105,115,120],gord:[12.5,11.8,11.2,10.8],peso:[80.1,79.0,78.5,78.2]},
-    "ATL005":{bip:[1120,1200,1300,1380],s10:[1.98,1.94,1.91,1.88],s30:[4.45,4.38,4.30,4.24],salto:[185,192,198,204],prancha:[75,85,92,98],gord:[11.2,10.8,10.1,9.7],peso:[70.5,70.0,69.7,69.4]}
-  },
-  presenca:{
-    "ATL001":[1,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1],
-    "ATL002":[1,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1],
-    "ATL003":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    "ATL004":[1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0],
-    "ATL005":[1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,0]
-  },
-  treinoDatas:["2026-06-29", "2026-06-30", "2026-07-02", "2026-07-04", "2026-07-06", "2026-07-07", "2026-07-09", "2026-07-11", "2026-07-13", "2026-07-14", "2026-07-16", "2026-07-18", "2026-07-20", "2026-07-21", "2026-07-23", "2026-07-25"],
-  cargaSemana:[
-    {dia:"mon",tipo:"Fisico",dur:75,rpe:7},
-    {dia:"tue",tipo:"Tecnico/Tatico",dur:90,rpe:6},
-    {dia:"thu",tipo:"Tecnico/Tatico",dur:90,rpe:5},
-    {dia:"sat",tipo:"Amistoso",dur:95,rpe:8}
-  ],
-  lesoes:[
-    {atleta:"Pedro Alves",inicio:"2025-05-10",retorno:"",regiao:"Tornozelo esq.",tipo:"Ligamentar",mec:"Contato",status:"Em tratamento"},
-    {atleta:"Carlos Silva",inicio:"2025-03-15",retorno:"2025-03-28",regiao:"Panturrilha dir.",tipo:"Muscular",mec:"Sem contato",status:"Recuperado"}
-  ],
-  nextId:6
+  wellbeing:{},
+  avaliacoes:{},
+  presenca:{},
+  treinoDatas:["2026-06-30"],
+  cargaSemana:[],
+  lesoes:[],
+  nextId:2
 };
-try{var s=localStorage.getItem("skb1b_v2");if(s)Object.assign(DB,JSON.parse(s));}catch(e){}
-function saveDB(){try{localStorage.setItem("skb1b_v2",JSON.stringify(DB));}catch(e){}}
+try{var s=localStorage.getItem("skb1b_v3");if(s)Object.assign(DB,JSON.parse(s));}catch(e){}
+function saveDB(){try{localStorage.setItem("skb1b_v3",JSON.stringify(DB));}catch(e){}}
 
 
 // ═══ Helpers ══════════════════════════════════════════════════════
