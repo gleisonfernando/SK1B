@@ -227,6 +227,7 @@ textarea{min-height:80px;resize:vertical}
       <div class="form-group"><label class="form-label" id="ml-alt">Altura (cm)</label><input id="m-alt" type="number" placeholder="178"></div>
       <div class="form-group"><label class="form-label" id="ml-gord">% Gordura</label><input id="m-gord" type="number" step="0.1" placeholder="12.5"></div>
       <div class="form-group"><label class="form-label" id="ml-tel">Telefone / WhatsApp</label><input id="m-tel" placeholder="(11) 99999-9999"></div>
+      <div class="form-group"><label class="form-label" id="ml-pin">PIN <small style="font-weight:400;color:#888">(auto DDMM — altere se necessário)</small></label><input id="m-pin" type="text" inputmode="numeric" maxlength="8" placeholder="ex: 0907 ou 090782"></div>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
       <button class="btn" onclick="closeAtletaModal()" id="m-cancel">Cancelar</button>
@@ -936,7 +937,7 @@ function saveAtleta(){
   if(!nome){alert(t("ml_nome")+"?");return;}
   var nasc=document.getElementById("m-nasc").value;
   if(!nasc){alert(LANG==="de"?"Geburtsdatum ist erforderlich.":"Data de nascimento e obrigatoria.");return;}
-  var pin=gerarPinNascimento(nasc);
+  var pin=document.getElementById("m-pin").value.trim()||gerarPinNascimento(nasc);
   var pos=document.getElementById("m-pos").value;
   var peso=parseFloat(document.getElementById("m-peso").value)||0;
   var altura=parseInt(document.getElementById("m-alt").value)||0;
@@ -953,7 +954,8 @@ function saveAtleta(){
       +"&nasc="+encodeURIComponent(nasc)
       +"&peso="+peso+"&altura="+altura+"&gord="+gord
       +"&pe="+encodeURIComponent(pe)
-      +"&tel="+encodeURIComponent(tel);
+      +"&tel="+encodeURIComponent(tel)
+      +"&pin="+encodeURIComponent(pin);
     if(isEdit) params+="&atleta_id="+encodeURIComponent(_editandoAtletaId);
     fetch(SHEETS_URL+"?"+params)
       .then(function(r){return r.json();})
@@ -1044,7 +1046,7 @@ function closeAtletaModal(){
   document.getElementById("modal-atleta").classList.add("hidden");
   _editandoAtletaId=null;
   // Limpar campos
-  ["m-nome","m-nasc","m-peso","m-alt","m-gord","m-tel"].forEach(function(id){
+  ["m-nome","m-nasc","m-peso","m-alt","m-gord","m-tel","m-pin"].forEach(function(id){
     var el=document.getElementById(id); if(el) el.value="";
   });
   var mt=document.getElementById("m-title"); if(mt) mt.textContent=t("new_athlete")||"Novo atleta";
@@ -1067,6 +1069,7 @@ function openEditAtleta(id){
   document.getElementById("m-alt").value=a.altura||"";
   document.getElementById("m-gord").value=a.gord||"";
   document.getElementById("m-tel").value=a.tel||"";
+  document.getElementById("m-pin").value=a.pin||"";
   // Posicao
   var posEl=document.getElementById("m-pos");
   if(posEl&&a.pos){ for(var i=0;i<posEl.options.length;i++){ if(posEl.options[i].value===a.pos||posEl.options[i].text===a.pos){ posEl.selectedIndex=i; break; } } }
