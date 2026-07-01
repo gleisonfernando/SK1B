@@ -290,6 +290,29 @@ textarea{min-height:80px;resize:vertical}
 <script>
 
 
+// ═══ Atletas do Sheets ════════════════════════════════════════════
+function fetchAtletasFromSheets(callback){
+  if(!SHEETS_URL){if(callback)callback();return;}
+  fetch(SHEETS_URL+"?acao=get_atletas")
+    .then(function(r){return r.json();})
+    .then(function(res){
+      if(res.status==="ok"&&res.atletas&&res.atletas.length){
+        // Merge: preserva dados locais de wellbeing/presenca, actualiza lista de atletas
+        var novosIds=res.atletas.map(function(a){return a.id;});
+        // Inicializar estruturas para atletas novos
+        res.atletas.forEach(function(a){
+          if(!DB.wellbeing[a.id]) DB.wellbeing[a.id]={sono:3,fadiga:3,dor:3,motivacao:3,estresse:3};
+          if(!DB.presenca[a.id]) DB.presenca[a.id]=[];
+          if(!DB.avaliacoes[a.id]) DB.avaliacoes[a.id]={bip:[],s10:[],s30:[],salto:[],prancha:[],gord:[],gordJP:[],peso:[],massaMagra:[],massaGorda:[],coxaE:[],coxaD:[],pantE:[],pantD:[]};
+        });
+        DB.atletas=res.atletas;
+        saveDB();
+      }
+      if(callback)callback();
+    })
+    .catch(function(){if(callback)callback();});
+}
+
 // ═══ RPE dos atletas (pós-treino, simplificado) ═══════════════════
 var _atletaRPEs = {}; // {data: {avg, count, values:[]}}
 function fetchRPEFromSheets(callback){
@@ -339,7 +362,7 @@ function fetchPresencaFromSheets(callback){
 
 // ═══ CONFIG Google Sheets ═══// ═══ CONFIG Google Sheets ═══════════════════════════════════════════
 // Após publicar o Apps Script, cole a URL aqui:
-var SHEETS_URL = "https://script.google.com/macros/s/AKfycbz2n7B26S-DZcEeAD4Rc6VOn-R8GlEPquXNqnmjj0fXcezUPum0s8J-2RNlJMdDcLpIYw/exec"; // ex: "https://script.google.com/macros/s/AKfycbz2n7B26S-DZcEeAD4Rc6VOn-R8GlEPquXNqnmjj0fXcezUPum0s8J-2RNlJMdDcLpIYw/exec"
+var SHEETS_URL = "https://script.google.com/macros/s/AKfycbyhdfBRq5xd39JHJG1wRHYdBP3Gd1t7OENQy1BIss4UCw3XNyg6vc6VDYUthbs4SAunAg/exec"; // ex: "https://script.google.com/macros/s/AKfycbyhdfBRq5xd39JHJG1wRHYdBP3Gd1t7OENQy1BIss4UCw3XNyg6vc6VDYUthbs4SAunAg/exec"
 var _wbFromSheets = {}; // cache dos dados vindos do Sheets
 
 function fetchWellbeingFromSheets(callback) {
@@ -749,6 +772,8 @@ document.querySelectorAll(".nav-item[data-page]").forEach(function(el){
       fetchWellbeingFromSheets(function(){ fetchRPEFromSheets(finish); });
     } else if(SHEETS_URL && pg==="wellbeing"){
       fetchWellbeingFromSheets(finish);
+    } else if(SHEETS_URL && pg==="atletas"){
+      fetchAtletasFromSheets(finish);
     } else if(SHEETS_URL && pg==="presenca"){
       fetchPresencaFromSheets(finish);
     } else if(SHEETS_URL && pg==="carga"){
@@ -856,28 +881,45 @@ function saveAtleta(){
   var nome=document.getElementById("m-nome").value.trim();
   if(!nome){alert(t("ml_nome")+"?");return;}
   var nasc=document.getElementById("m-nasc").value;
-  if(!nasc){alert((LANG==="de"?"Geburtsdatum ist erforderlich (für PIN).":"Data de nascimento é obrigatória (para gerar o PIN).") );return;}
+  if(!nasc){alert(LANG==="de"?"Geburtsdatum ist erforderlich.":"Data de nascimento e obrigatoria.");return;}
   var pin=gerarPinNascimento(nasc);
-  var a={id:"ATL"+String(DB.nextId++).padStart(3,"0"),nome:nome,
-    pos:document.getElementById("m-pos").value,
-    nasc:nasc,
-    peso:parseFloat(document.getElementById("m-peso").value)||0,
-    altura:parseInt(document.getElementById("m-alt").value)||0,
-    gord:parseFloat(document.getElementById("m-gord").value)||0,
-    pe:document.getElementById("m-pe").value,
-    tel:document.getElementById("m-tel").value,status:"Ativo",
-    pin:pin};
-  DB.atletas.push(a);
-  DB.wellbeing[a.id]={sono:3,fadiga:3,dor:3,motivacao:3,estresse:3};
-  DB.presenca[a.id]=[];
-  saveDB();closeAtletaModal();destroyCharts();
-  document.getElementById("content").innerHTML=rAtletas();
-  alert((LANG==="de"?"Spieler hinzugefügt!":"Atleta adicionado!")+"\\n\\n"
-    +(LANG==="de"?"Zugangsdaten für die App:":"Dados de acesso para o app:")+"\\n"
-    +"ID: "+a.id+"\\n"
-    +(LANG==="de"?"Name":"Nome")+": "+a.nome+"\\n"
-    +"PIN: "+pin+"\\n\\n"
-    +(LANG==="de"?"Bitte fügen Sie diesen Spieler manuell zur ATLETAS-Liste in wellbeing_atleta.html hinzu.":"Adicione manualmente este atleta na lista ATLETAS do ficheiro wellbeing_atleta.html."));
+  var pos=document.getElementById("m-pos").value;
+  var peso=parseFloat(document.getElementById("m-peso").value)||0;
+  var altura=parseInt(document.getElementById("m-alt").value)||0;
+  var gord=parseFloat(document.getElementById("m-gord").value)||0;
+  var pe=document.getElementById("m-pe").value;
+  var tel=document.getElementById("m-tel").value;
+  if(SHEETS_URL){
+    var params="acao=save_atleta"
+      +"&nome="+encodeURIComponent(nome)
+      +"&pos="+encodeURIComponent(pos)
+      +"&nasc="+encodeURIComponent(nasc)
+      +"&peso="+peso+"&altura="+altura+"&gord="+gord
+      +"&pe="+encodeURIComponent(pe)
+      +"&tel="+encodeURIComponent(tel);
+    fetch(SHEETS_URL+"?"+params)
+      .then(function(r){return r.json();})
+      .then(function(res){
+        var id=res.id||("ATL"+String(DB.nextId++).padStart(3,"0"));
+        var a={id:id,nome:nome,pos:pos,nasc:nasc,peso:peso,altura:altura,gord:gord,pe:pe,tel:tel,status:"Ativo",pin:pin};
+        DB.atletas.push(a);
+        DB.wellbeing[a.id]={sono:3,fadiga:3,dor:3,motivacao:3,estresse:3};
+        DB.presenca[a.id]=[];
+        if(!DB.avaliacoes[a.id])DB.avaliacoes[a.id]={bip:[],s10:[],s30:[],salto:[],prancha:[],gord:[],gordJP:[],peso:[],massaMagra:[],massaGorda:[],coxaE:[],coxaD:[],pantE:[],pantD:[]};
+        saveDB();closeAtletaModal();destroyCharts();
+        document.getElementById("content").innerHTML=rAtletas();
+        alert((LANG==="de"?"Spieler gespeichert!\nPIN: ":"Atleta salvo! PIN: ")+pin+"\n"+(LANG==="de"?"Jetzt in der App verfugbar.":"Ja disponivel no app."));
+      })
+      .catch(function(err){alert("Erro: "+err.message);});
+  } else {
+    var a={id:"ATL"+String(DB.nextId++).padStart(3,"0"),nome:nome,pos:pos,nasc:nasc,peso:peso,altura:altura,gord:gord,pe:pe,tel:tel,status:"Ativo",pin:pin};
+    DB.atletas.push(a);
+    DB.wellbeing[a.id]={sono:3,fadiga:3,dor:3,motivacao:3,estresse:3};
+    DB.presenca[a.id]=[];
+    saveDB();closeAtletaModal();destroyCharts();
+    document.getElementById("content").innerHTML=rAtletas();
+    alert("Atleta adicionado! PIN: "+pin);
+  }
 }
 function closeAtletaModal(){document.getElementById("modal-atleta").classList.add("hidden");}
 
@@ -1660,10 +1702,12 @@ function afterRender(pg){
 // ═══ Init ══════════════════════════════════════════════════════════
 // On load, fetch Sheets data then render
 if(SHEETS_URL){
-  fetchWellbeingFromSheets(function(){
-    fetchRPEFromSheets(function(){
-      document.getElementById("content").innerHTML = rDashboard();
-      afterRender("dashboard");
+  fetchAtletasFromSheets(function(){
+    fetchWellbeingFromSheets(function(){
+      fetchRPEFromSheets(function(){
+        document.getElementById("content").innerHTML = rDashboard();
+        afterRender("dashboard");
+      });
     });
   });
 } else {
