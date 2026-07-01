@@ -366,11 +366,23 @@ function fetchPresencaFromSheets(callback){
     .then(function(r){return r.json();})
     .then(function(res){
       _atletaPresencas={};
-      if(res.status==="ok"&&res.presenca){
+      if(res.status==="ok"&&res.presenca&&res.presenca.length){
+        // Build _atletaPresencas for "today" card display
         res.presenca.forEach(function(p){
           if(!_atletaPresencas[p.data]) _atletaPresencas[p.data]={};
           _atletaPresencas[p.data][p.atleta_id]=p.confirmado;
         });
+        // Also rebuild DB.presenca arrays for percentage calculation
+        // Group by atleta_id
+        var byAtleta={};
+        res.presenca.forEach(function(p){
+          if(!byAtleta[p.atleta_id]) byAtleta[p.atleta_id]=[];
+          byAtleta[p.atleta_id].push(p.confirmado==="Sim"?1:0);
+        });
+        Object.keys(byAtleta).forEach(function(id){
+          DB.presenca[id]=byAtleta[id];
+        });
+        saveDB();
       }
       if(callback)callback();
     })
@@ -379,7 +391,7 @@ function fetchPresencaFromSheets(callback){
 
 // ═══ CONFIG Google Sheets ═══// ═══ CONFIG Google Sheets ═══════════════════════════════════════════
 // Após publicar o Apps Script, cole a URL aqui:
-var SHEETS_URL = "https://script.google.com/macros/s/AKfycbwMkEgie9fSJHzFutOLHT4ZzRitT1XX2iOI0-63ZeHx6pOzZiQpSz06nvrshnhv-jQu_A/exec"; // ex: "https://script.google.com/macros/s/AKfycbwMkEgie9fSJHzFutOLHT4ZzRitT1XX2iOI0-63ZeHx6pOzZiQpSz06nvrshnhv-jQu_A/exec"
+var SHEETS_URL = "https://script.google.com/macros/s/AKfycbxywuW-NvzI6PWW86kj73oBJDXpf032Y-KKyL44TX2-Pdri1Dk7AfT8gkJgSc7KqoWeaQ/exec"; // ex: "https://script.google.com/macros/s/AKfycbxywuW-NvzI6PWW86kj73oBJDXpf032Y-KKyL44TX2-Pdri1Dk7AfT8gkJgSc7KqoWeaQ/exec"
 var _wbFromSheets = {}; // cache dos dados vindos do Sheets
 
 function fetchWellbeingFromSheets(callback) {
