@@ -822,7 +822,9 @@ document.querySelectorAll(".nav-item[data-page]").forEach(function(el){
       if(pg==="avaliacao") attachSaveBtn();
     }
     if(SHEETS_URL && pg==="dashboard"){
-      fetchWellbeingFromSheets(function(){ fetchRPEFromSheets(finish); });
+      fetchAtletasFromSheets(function(){
+        fetchWellbeingFromSheets(function(){ fetchRPEFromSheets(finish); });
+      });
     } else if(SHEETS_URL && pg==="wellbeing"){
       fetchWellbeingFromSheets(finish);
     } else if(SHEETS_URL && pg==="atletas"){
@@ -849,7 +851,7 @@ function render(pg){
 // ═══ Dashboard ════════════════════════════════════════════════════
 function rDashboard(){
   var ativos=DB.atletas.filter(function(a){return a.status==="Ativo";}).length;
-  var les=DB.atletas.filter(function(a){return a.status==="Lesionado";}).length;
+  var les=DB.lesoes.filter(function(l){return l.status==="Em tratamento";}).length;
   var avgI=DB.atletas.length?Math.round(DB.atletas.reduce(function(s,a){return s+igpV(DB.wellbeing[a.id]);},0)/DB.atletas.length):0;
   var avgP=DB.atletas.length?Math.round(DB.atletas.reduce(function(s,a){return s+ppct(DB.presenca[a.id]);},0)/DB.atletas.length):0;
   var u=ua();
@@ -1443,7 +1445,7 @@ function rCarga(){
   html+='</div>';
   html+='<div class="card"><div class="card-title"><i class="ti ti-list-details"></i>'+t("week_detail")+'</div>';
   html+='<div class="table-wrap"><table>';
-  html+='<thead><tr><th>'+t("day_col")+'</th><th>'+t("type_col")+'</th><th>'+t("dur_col")+'</th><th>RPE</th><th>'+t("load_ua")+'</th><th>'+t("pct_week")+'</th></tr></thead><tbody>';
+  html+='<thead><tr><th>'+t("day_col")+'</th><th>'+t("type_col")+'</th><th>'+t("dur_col")+'</th><th>RPE</th><th>'+t("load_ua")+'</th><th>'+t("pct_week")+'</th><th></th></tr></thead><tbody>';
   sess.forEach(function(s,i){
     var u2=cgs[i];var pct=Math.round(u2/tot*100);
     var eRpe=effectiveRPE(s);
@@ -1452,14 +1454,34 @@ function rCarga(){
     var rpeTag = fromAthletes
       ? '<span class="badge '+rpeCls+'">'+eRpe+'/10</span> <span style="font-size:10px;color:var(--green-700)" title="'+_atletaRPEs[s.data].count+' respostas dos atletas">&#128100; real</span>'
       : '<span class="badge '+rpeCls+'">'+eRpe+'/10</span> <span style="font-size:10px;color:var(--text-3)" title="Aguardando respostas dos atletas">&#9201; provisorio</span>';
-    html+='<tr><td><strong>'+diaTxt(s.dia)+'</strong></td><td>'+sessT(s.tipo)+'</td><td>'+s.dur+' min</td>';
+    html+='<tr id="sess-row-'+i+'">';
+    html+='<td><strong>'+diaTxt(s.dia)+'</strong></td><td>'+sessT(s.tipo)+'</td><td>'+s.dur+' min</td>';
     html+='<td>'+rpeTag+'</td>';
     html+='<td><strong>'+u2+'</strong></td>';
-    html+='<td style="width:180px"><div style="display:flex;align-items:center;gap:8px"><span style="min-width:34px;font-size:12px">'+pct+'%</span>';
+    html+='<td style="width:140px"><div style="display:flex;align-items:center;gap:6px"><span style="min-width:30px;font-size:12px">'+pct+'%</span>';
     html+='<div class="prog-bar" style="flex:1;height:6px"><div class="prog-fill" style="width:'+pct+'%"></div></div></div></td>';
+    html+='<td style="display:flex;gap:4px">';
+    html+='<button class="btn" style="padding:5px 8px;font-size:12px;background:var(--surface);border:1px solid var(--border)" onclick="openEditSess('+i+')" title="Editar"><i class="ti ti-pencil" style="font-size:13px"></i></button>';
+    html+='<button class="btn danger" style="padding:5px 8px;font-size:12px" onclick="delSess('+i+')" title="Excluir"><i class="ti ti-trash" style="font-size:13px"></i></button>';
+    html+='</td>';
     html+='</tr>';
+    // Inline edit row (hidden by default)
+    html+='<tr id="sess-edit-'+i+'" class="hidden" style="background:var(--surface-2)">';
+    html+='<td colspan="7" style="padding:10px 12px">';
+    html+='<div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">';
+    html+='<div><label class="form-label" style="font-size:10px">Data</label><input type="date" id="es-dt-'+i+'" value="'+(s.data||todayStr())+'" style="padding:6px 8px;font-size:13px;border:1.5px solid var(--border);border-radius:6px"></div>';
+    // Type select
+    html+='<div><label class="form-label" style="font-size:10px">'+t("type_col")+'</label><select id="es-tp-'+i+'" style="padding:6px 8px;font-size:13px;border:1.5px solid var(--border);border-radius:6px">';
+    var sessTypes=["Tecnico/Tatico","Fisico","Fisico+Tatico","Jogo","Amistoso","Regenerativo","Folga"];
+    sessTypes.forEach(function(tp){html+='<option'+(s.tipo===tp?" selected":"")+'>'+tp+'</option>';});
+    html+='</select></div>';
+    html+='<div><label class="form-label" style="font-size:10px">'+t("dur_min")+'</label><input type="number" id="es-dur-'+i+'" value="'+s.dur+'" style="width:80px;padding:6px 8px;font-size:13px;border:1.5px solid var(--border);border-radius:6px"></div>';
+    html+='<div><label class="form-label" style="font-size:10px">RPE</label><input type="number" id="es-rpe-'+i+'" value="'+s.rpe+'" min="0" max="10" style="width:70px;padding:6px 8px;font-size:13px;border:1.5px solid var(--border);border-radius:6px"></div>';
+    html+='<button class="btn primary" style="padding:7px 16px;font-size:13px" onclick="saveEditSess('+i+')"><i class="ti ti-check"></i> Salvar</button>';
+    html+='<button class="btn" style="padding:7px 14px;font-size:13px" onclick="closeEditSess('+i+')"><i class="ti ti-x"></i></button>';
+    html+='</div></td></tr>';
   });
-  html+='</tbody><tfoot><tr><td colspan="4">'+t("weekly_total")+'</td><td>'+tot+' '+u+'</td><td>100%</td></tr></tfoot>';
+  html+='</tbody><tfoot><tr><td colspan="4">'+t("weekly_total")+'</td><td>'+tot+' '+u+'</td><td>100%</td><td></td></tr></tfoot>';
   html+='</table></div></div>';
   return html;
 }
@@ -1480,6 +1502,38 @@ function addSess(){
   var dt=document.getElementById("nc-dt").value;
   if(!dur||!rpe){alert(t("fill_err"));return;}
   DB.cargaSemana.push({dia:dayN(dt),tipo:tipo,dur:dur,rpe:rpe,data:dt});saveDB();
+  destroyCharts();document.getElementById("content").innerHTML=rCarga();afterRender("carga");
+}
+
+function openEditSess(idx){
+  // Hide all other edit rows first
+  DB.cargaSemana.forEach(function(_,i){
+    var r=document.getElementById("sess-edit-"+i);
+    if(r) r.classList.add("hidden");
+  });
+  var row=document.getElementById("sess-edit-"+idx);
+  if(row) row.classList.remove("hidden");
+}
+
+function closeEditSess(idx){
+  var row=document.getElementById("sess-edit-"+idx);
+  if(row) row.classList.add("hidden");
+}
+
+function saveEditSess(idx){
+  var dur=parseFloat(document.getElementById("es-dur-"+idx).value)||0;
+  var rpe=parseFloat(document.getElementById("es-rpe-"+idx).value)||0;
+  var tipo=document.getElementById("es-tp-"+idx).value;
+  var dt=document.getElementById("es-dt-"+idx).value;
+  if(!dur||!rpe){alert(t("fill_err"));return;}
+  DB.cargaSemana[idx]={dia:dayN(dt),tipo:tipo,dur:dur,rpe:rpe,data:dt};
+  saveDB();destroyCharts();
+  document.getElementById("content").innerHTML=rCarga();afterRender("carga");
+}
+
+function delSess(idx){
+  if(!confirm(LANG==="de"?"Sitzung löschen?":"Excluir esta sessão?")) return;
+  DB.cargaSemana.splice(idx,1);saveDB();
   destroyCharts();document.getElementById("content").innerHTML=rCarga();afterRender("carga");
 }
 
