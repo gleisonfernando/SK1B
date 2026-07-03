@@ -1609,26 +1609,53 @@ function rPresenca(){
     html+='<div class="alert alert-info mb16"><i class="ti ti-info-circle"></i>Ainda sem confirmações de presença.</div>';
   }
   html+='<div class="alert alert-info mb16"><i class="ti ti-info-circle"></i>'+t("pres_legend")+'</div>';
+
+  // Build unified date list: DB.treinoDatas + all dates from Sheets, sorted
+  var sheetsDateSet={};
+  Object.keys(_atletaPresencas).forEach(function(d){ sheetsDateSet[d]=true; });
+  var allTrainDates=DB.treinoDatas.slice();
+  Object.keys(sheetsDateSet).forEach(function(d){
+    if(allTrainDates.indexOf(d)<0) allTrainDates.push(d);
+  });
+  allTrainDates.sort();
+
   html+='<div class="card"><div class="table-wrap"><table>';
   html+='<thead><tr><th style="min-width:160px">'+t("nm_atletas")+'</th>';
-  DB.treinoDatas.forEach(function(iso){
+  allTrainDates.forEach(function(iso){
     var dd=new Date(iso+"T12:00:00");
     var dayAbbr=dd.toLocaleDateString(LANG==="de"?"de-DE":"pt-BR",{weekday:"short"});
     var dayDate=dd.toLocaleDateString(LANG==="de"?"de-DE":"pt-BR",{day:"2-digit",month:"2-digit"});
     html+='<th class="pres-cell" style="font-size:10px">'+dayAbbr+" "+dayDate+'</th>';
   });
   html+='<th style="min-width:90px">'+t("attendance_col")+'</th></tr></thead><tbody>';
+
   DB.atletas.forEach(function(a){
-    var arr=DB.presenca[a.id]||[];var pct=ppct(arr);
+    // Count presence from Sheets data
+    var simTotal=0, total=0;
+    allTrainDates.forEach(function(d){
+      var dayData=_atletaPresencas[d]||{};
+      if(dayData[a.id]!==undefined) total++;
+      if(dayData[a.id]==="Sim") simTotal++;
+    });
+    var pct=total>0?Math.round(simTotal/allTrainDates.length*100):ppct(DB.presenca[a.id]);
     var pCol=pct>=80?"var(--green-700)":pct>=60?"var(--yellow-700)":"var(--red-700)";
+    var isLesionado=DB.lesoes.some(function(l){ return l.atleta===a.nome&&l.status==="Em tratamento"; });
+
     html+='<tr><td><div style="display:flex;align-items:center;gap:9px"><div class="avatar">'+ini(a.nome)+'</div>';
     html+='<div><div style="font-weight:500">'+a.nome+'</div><div style="font-size:11px;color:var(--text-3)">'+a.pos+'</div></div></div></td>';
-    DB.treinoDatas.forEach(function(_,i){
-      var val=arr[i];var isL=a.status==="Lesionado";
-      var cls=val===1?"badge-green":(isL&&val!==1)?"badge-red":"badge-yellow";
-      var lbl=val===1?t("pres_p"):(isL&&val!==1)?t("pres_l"):t("pres_f");
+
+    allTrainDates.forEach(function(d){
+      var dayData=_atletaPresencas[d]||{};
+      var conf=dayData[a.id];
+      var cls,lbl;
+      if(conf==="Sim"){ cls="badge-green"; lbl=t("pres_p"); }
+      else if(conf==="Nao"){
+        if(isLesionado){ cls="badge-red"; lbl=t("pres_l"); }
+        else { cls="badge-red"; lbl=t("pres_f"); }
+      } else { cls="badge-gray"; lbl="—"; }
       html+='<td class="pres-cell"><span class="badge '+cls+'">'+lbl+'</span></td>';
     });
+
     html+='<td><div style="font-weight:600;font-size:13px">'+pct+'%</div>';
     html+='<div class="prog-bar"><div class="prog-fill" style="width:'+pct+'%;background:'+pCol+'"></div></div></td></tr>';
   });
