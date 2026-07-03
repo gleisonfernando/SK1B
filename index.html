@@ -360,6 +360,22 @@ function fetchTodasAvaliacoes(callback){
 
 // ═══ Presença confirmada pelos atletas ════════════════════════════
 var _atletaPresencas = {}; // {data: {atleta_id: "Sim"/"Nao"}}
+var _atletaMotivos   = {}; // {data: {atleta_id: "motivo"}}
+
+function filterPresencaDate(date){
+  // Re-render with selected date on top
+  var allDates=Object.keys(_atletaPresencas).sort().reverse();
+  var idx=allDates.indexOf(date);
+  if(idx>0){ allDates.splice(idx,1); allDates.unshift(date); }
+  // Temporarily reorder keys — simplest: just re-render
+  var saved=_atletaPresencas;
+  var reordered={};
+  reordered[date]=saved[date];
+  Object.keys(saved).forEach(function(d){ if(d!==date) reordered[d]=saved[d]; });
+  _atletaPresencas=reordered;
+  document.getElementById("content").innerHTML=rPresenca();
+  _atletaPresencas=saved;
+}
 function fetchPresencaFromSheets(callback){
   if(!SHEETS_URL){if(callback)callback();return;}
   var url=SHEETS_URL+"?acao=get_presenca";
@@ -372,6 +388,10 @@ function fetchPresencaFromSheets(callback){
         res.presenca.forEach(function(p){
           if(!_atletaPresencas[p.data]) _atletaPresencas[p.data]={};
           _atletaPresencas[p.data][p.atleta_id]=p.confirmado;
+          if(p.motivo){
+            if(!_atletaMotivos[p.data]) _atletaMotivos[p.data]={};
+            _atletaMotivos[p.data][p.atleta_id]=p.motivo;
+          }
         });
         // Also rebuild DB.presenca arrays for percentage calculation
         // Group by atleta_id
@@ -392,7 +412,7 @@ function fetchPresencaFromSheets(callback){
 
 // ═══ CONFIG Google Sheets ═══// ═══ CONFIG Google Sheets ═══════════════════════════════════════════
 // Após publicar o Apps Script, cole a URL aqui:
-var SHEETS_URL = "https://script.google.com/macros/s/AKfycbxywuW-NvzI6PWW86kj73oBJDXpf032Y-KKyL44TX2-Pdri1Dk7AfT8gkJgSc7KqoWeaQ/exec"; // ex: "https://script.google.com/macros/s/AKfycbxywuW-NvzI6PWW86kj73oBJDXpf032Y-KKyL44TX2-Pdri1Dk7AfT8gkJgSc7KqoWeaQ/exec"
+var SHEETS_URL = "https://script.google.com/macros/s/AKfycbwsnmW-7ltiZCbZCMIJNNOpxkr-SID_be9lOTIP_6ynlygUW7RoQJCHYYwmElLQqC8TCA/exec"; // ex: "https://script.google.com/macros/s/AKfycbwsnmW-7ltiZCbZCMIJNNOpxkr-SID_be9lOTIP_6ynlygUW7RoQJCHYYwmElLQqC8TCA/exec"
 var _wbFromSheets = {}; // cache dos dados vindos do Sheets
 
 function fetchWellbeingFromSheets(callback) {
@@ -1541,14 +1561,21 @@ function delSess(idx){
 // ═══ Presenca ═════════════════════════════════════════════════════
 function rPresenca(){
   var html='';
-  // Confirmações de hoje (vindas dos atletas via app)
   var today=new Date().toISOString().slice(0,10);
-  var todayConfirms=_atletaPresencas[today]||{};
-  var confirmCount=Object.keys(todayConfirms).length;
+
+  // Find most recent date with confirmations (today or most recent training day)
+  var allDates=Object.keys(_atletaPresencas).sort().reverse();
+  var displayDate=allDates.length?allDates[0]:today;
+  var displayConfirms=_atletaPresencas[displayDate]||{};
+  var confirmCount=Object.keys(displayConfirms).length;
+  var isToday=displayDate===today;
+  var displayLabel=isToday?"Confirmações de hoje":"Confirmações de "+displayDate.split("-").reverse().join("/");
+
   if(confirmCount>0){
-    var simCount=Object.values(todayConfirms).filter(function(v){return v==="Sim";}).length;
-    var naoCount=confirmCount-simCount;
-    html+='<div class="card mb16"><div class="card-title"><i class="ti ti-calendar-check"></i>Confirmações de hoje</div>';
+    var simCount=Object.values(displayConfirms).filter(function(v){return v==="Sim";}).length;
+    var naoCount=Object.values(displayConfirms).filter(function(v){return v==="Nao";}).length;
+    var motivoMap=_atletaMotivos||{};
+    html+='<div class="card mb16"><div class="card-title"><i class="ti ti-calendar-check"></i>'+displayLabel+'</div>';
     html+='<div class="g3" style="margin-bottom:10px">';
     html+='<div class="metric-card"><div class="metric-label">Confirmados</div><div class="metric-value" style="color:var(--green-700)">'+simCount+'</div></div>';
     html+='<div class="metric-card"><div class="metric-label">Ausentes</div><div class="metric-value" style="color:var(--red-700)">'+naoCount+'</div></div>';
@@ -1556,13 +1583,30 @@ function rPresenca(){
     html+='</div>';
     html+='<div style="display:flex;flex-wrap:wrap;gap:6px">';
     DB.atletas.forEach(function(a){
-      var conf=todayConfirms[a.id];
-      var badge=conf==="Sim"?'<span class="badge badge-green">✓ '+a.nome+'</span>':conf==="Nao"?'<span class="badge badge-red">✕ '+a.nome+'</span>':'<span class="badge badge-gray">? '+a.nome+'</span>';
+      var conf=displayConfirms[a.id];
+      var motivo=(motivoMap[displayDate]&&motivoMap[displayDate][a.id])||"";
+      var badge=conf==="Sim"
+        ?'<span class="badge badge-green">✓ '+a.nome+'</span>'
+        :conf==="Nao"
+          ?'<span class="badge badge-red" title="'+motivo+'">✕ '+a.nome+(motivo?' ('+motivo+')':'')+'</span>'
+          :'<span class="badge badge-gray">? '+a.nome+'</span>';
       html+=badge;
     });
-    html+='</div></div>';
+    html+='</div>';
+    // Date selector for other days
+    if(allDates.length>1){
+      html+='<div style="margin-top:10px;display:flex;align-items:center;gap:8px">';
+      html+='<label style="font-size:12px;color:var(--text-3)">Ver outra data:</label>';
+      html+='<select onchange="filterPresencaDate(this.value)" style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px">';
+      allDates.forEach(function(d){
+        var lbl=d.split("-").reverse().join("/");
+        html+='<option value="'+d+'"'+(d===displayDate?" selected":"")+'>'+lbl+'</option>';
+      });
+      html+='</select></div>';
+    }
+    html+='</div>';
   } else {
-    html+='<div class="alert alert-info mb16"><i class="ti ti-info-circle"></i>Ainda sem confirmações de presença para hoje.</div>';
+    html+='<div class="alert alert-info mb16"><i class="ti ti-info-circle"></i>Ainda sem confirmações de presença.</div>';
   }
   html+='<div class="alert alert-info mb16"><i class="ti ti-info-circle"></i>'+t("pres_legend")+'</div>';
   html+='<div class="card"><div class="table-wrap"><table>';
