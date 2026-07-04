@@ -386,11 +386,14 @@ function fetchPresencaFromSheets(callback){
       if(res.status==="ok"&&res.presenca&&res.presenca.length){
         // Build _atletaPresencas for "today" card display
         res.presenca.forEach(function(p){
-          if(!_atletaPresencas[p.data]) _atletaPresencas[p.data]={};
-          _atletaPresencas[p.data][p.atleta_id]=p.confirmado;
+          // Normalize date to YYYY-MM-DD
+          var dataStr = p.data ? String(p.data).slice(0,10) : "";
+          if(!dataStr) return;
+          if(!_atletaPresencas[dataStr]) _atletaPresencas[dataStr]={};
+          _atletaPresencas[dataStr][p.atleta_id]=p.confirmado;
           if(p.motivo){
-            if(!_atletaMotivos[p.data]) _atletaMotivos[p.data]={};
-            _atletaMotivos[p.data][p.atleta_id]=p.motivo;
+            if(!_atletaMotivos[dataStr]) _atletaMotivos[dataStr]={};
+            _atletaMotivos[dataStr][p.atleta_id]=p.motivo;
           }
         });
         // Also rebuild DB.presenca arrays for percentage calculation
