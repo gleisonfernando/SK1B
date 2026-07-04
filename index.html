@@ -1613,13 +1613,13 @@ function rPresenca(){
   }
   html+='<div class="alert alert-info mb16"><i class="ti ti-info-circle"></i>'+t("pres_legend")+'</div>';
 
-  // Build unified date list: DB.treinoDatas + all dates from Sheets, sorted
-  var sheetsDateSet={};
-  Object.keys(_atletaPresencas).forEach(function(d){ sheetsDateSet[d]=true; });
-  var allTrainDates=DB.treinoDatas.slice();
-  Object.keys(sheetsDateSet).forEach(function(d){
-    if(allTrainDates.indexOf(d)<0) allTrainDates.push(d);
+  // Usar APENAS datas das sessões registadas no Controle de Carga
+  var allTrainDates = [];
+  DB.cargaSemana.forEach(function(s){
+    if(s.data && allTrainDates.indexOf(s.data)<0) allTrainDates.push(s.data);
   });
+  // Fallback: se não houver sessões com data, usar DB.treinoDatas
+  if(!allTrainDates.length) allTrainDates = DB.treinoDatas.slice();
   allTrainDates.sort();
 
   html+='<div class="card"><div class="table-wrap"><table>';
