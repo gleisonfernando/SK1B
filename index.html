@@ -881,6 +881,10 @@ function rDashboard(){
   var cgs=DB.cargaSemana.map(function(s){return effectiveRPE(s)*s.dur;});
   var tot=cgs.reduce(function(a,b){return a+b;},0);
   var html="";
+
+  // ── ANÁLISE DE PRONTIDÃO DA EQUIPA ──────────────────────────────
+  html+=buildParecerTreino(avgI);
+
   html+='<div class="g4 mb20">';
   html+='<div class="metric-card"><div class="metric-label">'+t("active_athletes")+'</div><div class="metric-value">'+ativos+'</div><div class="metric-sub">'+t("of")+' '+DB.atletas.length+' '+t("registered")+'</div></div>';
   html+='<div class="metric-card"><div class="metric-label">'+t("injured_lbl")+'</div><div class="metric-value metric-down">'+les+'</div><div class="metric-sub">'+t("sidelined")+'</div></div>';
@@ -901,6 +905,107 @@ function rDashboard(){
   html+='</div>';
   html+='<div class="card"><div class="card-title"><i class="ti ti-chart-line"></i>'+t("bip_evolution")+'</div>';
   html+='<div style="position:relative;height:200px"><canvas id="ch-b-d" role="img" aria-label="bip">.</canvas></div></div>';
+  return html;
+}
+
+function buildParecerTreino(avgIgp){
+  // Identificar atletas com dados de hoje
+  var today=new Date().toISOString().slice(0,10);
+  var atletasHoje=DB.atletas.filter(function(a){
+    var wb=DB.wellbeing[a.id]; return wb&&wb.hoje;
+  });
+  if(!atletasHoje.length) return ""; // Sem dados de hoje, sem parecer
+
+  // Calcular IGP médio só de quem respondeu hoje
+  var igpHoje=Math.round(atletasHoje.reduce(function(s,a){return s+igpV(DB.wellbeing[a.id]);},0)/atletasHoje.length);
+
+  // Atletas em risco (IGP < 60)
+  var emRisco=atletasHoje.filter(function(a){ return igpV(DB.wellbeing[a.id])<60; });
+  var emAtencao=atletasHoje.filter(function(a){ var v=igpV(DB.wellbeing[a.id]); return v>=60&&v<75; });
+
+  // Treino de hoje (última sessão registada para hoje ou a mais recente)
+  var treinoHoje=null;
+  DB.cargaSemana.forEach(function(s){ if(s.data===today) treinoHoje=s; });
+  if(!treinoHoje&&DB.cargaSemana.length) treinoHoje=DB.cargaSemana[DB.cargaSemana.length-1];
+
+  // Determinar semáforo
+  var semaforo, semaforoLabel, semaforoCor, semaforoEmoji;
+  if(igpHoje>=80&&emRisco.length===0){
+    semaforo="verde"; semaforoEmoji="🟢";
+    semaforoLabel="PRONTIDÃO TOTAL"; semaforoCor="var(--green-700)";
+  } else if(igpHoje>=65&&emRisco.length<=2){
+    semaforo="amarelo"; semaforoEmoji="🟡";
+    semaforoLabel="PRONTIDÃO MODERADA"; semaforoCor="var(--yellow-700)";
+  } else if(igpHoje>=50||emRisco.length<=4){
+    semaforo="laranja"; semaforoEmoji="🟠";
+    semaforoLabel="PRONTIDÃO REDUZIDA"; semaforoCor="#e65100";
+  } else {
+    semaforo="vermelho"; semaforoEmoji="🔴";
+    semaforoLabel="PRONTIDÃO CRÍTICA"; semaforoCor="var(--red-700)";
+  }
+
+  // Base científica e recomendação por tipo de treino
+  var tipoTreino=treinoHoje?treinoHoje.tipo:"";
+  var recomendacao="", embasamento="";
+
+  if(semaforo==="verde"){
+    recomendacao="<b>Treino conforme planeado.</b> O grupo apresenta excelente prontidão física e psicológica. Aproveitar para trabalhar alta intensidade.";
+    embasamento="IGP médio ≥ 80 com risco individual baixo — dentro da zona ideal de treino (Foster et al., 2001).";
+  } else if(semaforo==="amarelo"){
+    if(tipoTreino&&tipoTreino.toLowerCase().indexOf("fisico")>=0){
+      recomendacao="<b>Reduzir volume em 15-20%.</b> Manter a intensidade do trabalho técnico-tático mas encurtar as séries de trabalho físico. Monitorar os atletas sinalizados durante a sessão.";
+    } else {
+      recomendacao="<b>Treino técnico-tático como planeado.</b> Evitar sobrecarga física adicional. Atenção aos atletas com IGP abaixo de 65.";
+    }
+    embasamento="IGP médio entre 65-79 — zona de atenção moderada. Hooper Index indica que a carga percebida está acima do ideal para "+emAtencao.length+" atleta(s) (Hooper & Mackinnon, 1995).";
+  } else if(semaforo==="laranja"){
+    recomendacao="<b>Reduzir intensidade em 25-30%.</b> Priorizar trabalho técnico de baixa intensidade. Considerar substituir exercícios com contato físico por trabalho sem oposição. "+emRisco.length+" atleta(s) em risco elevado de lesão — usar com cautela.";
+    embasamento="IGP médio entre 50-64 com "+emRisco.length+" atleta(s) em zona crítica. Risco aumentado de lesão muscular aguda associado a fadiga acumulada (Malone et al., 2017 — The Champion's Curse).";
+  } else {
+    recomendacao="<b>Treino regenerativo ou técnico leve.</b> NÃO realizar trabalho de alta intensidade hoje. Sugerido: rondos de baixa intensidade, trabalho posicional sem pressão, ou treino individual facultativo.";
+    embasamento="IGP médio < 50 com "+emRisco.length+" atleta(s) em zona crítica. Evidência forte de overreaching funcional — treino intenso aumenta risco de lesão em 3-5x (Gabbett, 2016 — The Training-Injury Prevention Paradox).";
+  }
+
+  var html='<div class="card mb16" style="border-left:4px solid '+semaforoCor+';background:var(--surface)">';
+  html+='<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">';
+  html+='<span style="font-size:32px">'+semaforoEmoji+'</span>';
+  html+='<div><div style="font-size:15px;font-weight:700;color:'+semaforoCor+'">'+semaforoLabel+'</div>';
+  html+='<div style="font-size:12px;color:var(--text-3)">Análise de prontidão — '+atletasHoje.length+' atleta(s) responderam hoje</div></div>';
+  html+='<div style="margin-left:auto;text-align:center"><div style="font-size:32px;font-weight:800;color:'+semaforoCor+'">'+igpHoje+'</div><div style="font-size:10px;color:var(--text-3);text-transform:uppercase">IGP médio</div></div>';
+  html+='</div>';
+
+  // Atletas em risco
+  if(emRisco.length>0){
+    html+='<div style="background:var(--red-50,#ffebee);border-radius:8px;padding:10px 12px;margin-bottom:10px">';
+    html+='<div style="font-size:12px;font-weight:700;color:var(--red-700);margin-bottom:6px">⚠️ Atletas em risco (IGP < 60):</div>';
+    html+='<div style="display:flex;flex-wrap:wrap;gap:6px">';
+    emRisco.forEach(function(a){
+      var wb=DB.wellbeing[a.id];
+      var v=igpV(wb);
+      var flags=[];
+      if(wb.fadiga<=2) flags.push("fadiga alta");
+      if(wb.dor<=2) flags.push("dor muscular");
+      if(wb.sono<=2) flags.push("sono ruim");
+      if(wb.motivacao<=2) flags.push("motivação baixa");
+      html+='<span style="background:#fff;border:1px solid #ef9a9a;border-radius:6px;padding:4px 10px;font-size:12px">';
+      html+='<b>'+a.nome+'</b> <span style="color:var(--red-700)">IGP '+v+'</span>';
+      if(flags.length) html+=' <span style="color:#888;font-size:10px">('+flags.join(", ")+')</span>';
+      html+='</span>';
+    });
+    html+='</div></div>';
+  }
+
+  // Recomendação
+  html+='<div style="background:var(--surface-2,#f7f8fa);border-radius:8px;padding:10px 12px;margin-bottom:8px">';
+  html+='<div style="font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:4px">📋 Recomendação para o treino de hoje'+(treinoHoje?' ('+treinoHoje.tipo+')':'')+':</div>';
+  html+='<div style="font-size:13px;color:var(--text-1)">'+recomendacao+'</div>';
+  html+='</div>';
+
+  // Embasamento científico
+  html+='<div style="font-size:11px;color:var(--text-3);border-top:1px solid var(--border);padding-top:8px">';
+  html+='<i class="ti ti-microscope" style="margin-right:4px"></i><b>Base científica:</b> '+embasamento;
+  html+='</div>';
+  html+='</div>';
   return html;
 }
 
