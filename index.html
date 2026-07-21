@@ -1718,18 +1718,31 @@ function rPresenca(){
   }
   html+='<div class="alert alert-info mb16"><i class="ti ti-info-circle"></i>'+t("pres_legend")+'</div>';
 
-  // Usar APENAS datas das sessões registadas no Controle de Carga
+  // Combinar datas do Controle de Carga + datas com confirmações no Sheets
   var allTrainDates = [];
   DB.cargaSemana.forEach(function(s){
     if(s.data && allTrainDates.indexOf(s.data)<0) allTrainDates.push(s.data);
   });
-  // Fallback: se não houver sessões com data, usar DB.treinoDatas
+  // Adicionar datas com confirmações do Sheets que não estão no Controle de Carga
+  Object.keys(_atletaPresencas).forEach(function(d){
+    if(allTrainDates.indexOf(d)<0) allTrainDates.push(d);
+  });
   if(!allTrainDates.length) allTrainDates = DB.treinoDatas.slice();
   allTrainDates.sort();
 
+  // Condensação: mostrar só últimas 10 sessões + percentual acumulado
+  var JANELA = 10;
+  var totalSessoes = allTrainDates.length;
+  var sessoesAnteriores = totalSessoes > JANELA ? allTrainDates.slice(0, totalSessoes - JANELA) : [];
+  var sessoesVisiveis  = totalSessoes > JANELA ? allTrainDates.slice(totalSessoes - JANELA) : allTrainDates;
+
   html+='<div class="card"><div class="table-wrap"><table>';
   html+='<thead><tr><th style="min-width:160px">'+t("nm_atletas")+'</th>';
-  allTrainDates.forEach(function(iso){
+  // If there are condensed sessions, show a summary column
+  if(sessoesAnteriores.length){
+    html+='<th class="pres-cell" style="font-size:10px;color:var(--text-3)">Ant.<br>'+sessoesAnteriores.length+' treinos</th>';
+  }
+  sessoesVisiveis.forEach(function(iso){
     var dd=new Date(iso+"T12:00:00");
     var dayAbbr=dd.toLocaleDateString(LANG==="de"?"de-DE":"pt-BR",{weekday:"short"});
     var dayDate=dd.toLocaleDateString(LANG==="de"?"de-DE":"pt-BR",{day:"2-digit",month:"2-digit"});
@@ -1738,28 +1751,40 @@ function rPresenca(){
   html+='<th style="min-width:90px">'+t("attendance_col")+'</th></tr></thead><tbody>';
 
   DB.atletas.forEach(function(a){
-    // Count presence from Sheets data
-    var simTotal=0, total=0;
+    // Count presence from ALL dates (for percentage)
+    var simTotal=0;
     allTrainDates.forEach(function(d){
       var dayData=_atletaPresencas[d]||{};
-      if(dayData[a.id]!==undefined) total++;
       if(dayData[a.id]==="Sim") simTotal++;
     });
-    var pct=total>0?Math.round(simTotal/allTrainDates.length*100):ppct(DB.presenca[a.id]);
+    var pct=allTrainDates.length>0?Math.round(simTotal/allTrainDates.length*100):ppct(DB.presenca[a.id]);
     var pCol=pct>=80?"var(--green-700)":pct>=60?"var(--yellow-700)":"var(--red-700)";
     var isLesionado=DB.lesoes.some(function(l){ return l.atleta===a.nome&&l.status==="Em tratamento"; });
 
     html+='<tr><td><div style="display:flex;align-items:center;gap:9px"><div class="avatar">'+ini(a.nome)+'</div>';
-    html+='<div><div style="font-weight:500">'+a.nome+'</div><div style="font-size:11px;color:var(--text-3)">'+a.pos+'</div></div></div></td>';
+    html+='<div><div style="font-weight:500">'+a.nome+'</div>';
+    html+='<div style="font-size:11px;color:var(--text-3)">'+a.pos+'</div></div></div></td>';
 
-    allTrainDates.forEach(function(d){
+    // Condensed column: % nos treinos anteriores
+    if(sessoesAnteriores.length){
+      var simAnt=0;
+      sessoesAnteriores.forEach(function(d){
+        var dayData=_atletaPresencas[d]||{};
+        if(dayData[a.id]==="Sim") simAnt++;
+      });
+      var pctAnt=Math.round(simAnt/sessoesAnteriores.length*100);
+      var cAnt=pctAnt>=80?"var(--green-700)":pctAnt>=60?"var(--yellow-700)":"var(--red-700)";
+      html+='<td class="pres-cell"><span style="font-size:12px;font-weight:700;color:'+cAnt+'">'+pctAnt+'%</span></td>';
+    }
+
+    // Visible sessions columns
+    sessoesVisiveis.forEach(function(d){
       var dayData=_atletaPresencas[d]||{};
       var conf=dayData[a.id];
       var cls,lbl;
       if(conf==="Sim"){ cls="badge-green"; lbl=t("pres_p"); }
       else if(conf==="Nao"){
-        if(isLesionado){ cls="badge-red"; lbl=t("pres_l"); }
-        else { cls="badge-red"; lbl=t("pres_f"); }
+        cls="badge-red"; lbl=isLesionado?t("pres_l"):t("pres_f");
       } else { cls="badge-gray"; lbl="—"; }
       html+='<td class="pres-cell"><span class="badge '+cls+'">'+lbl+'</span></td>';
     });
