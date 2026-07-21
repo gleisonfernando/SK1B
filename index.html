@@ -1718,20 +1718,16 @@ function rPresenca(){
   }
   html+='<div class="alert alert-info mb16"><i class="ti ti-info-circle"></i>'+t("pres_legend")+'</div>';
 
-  // Combinar datas do Controle de Carga + datas com confirmações no Sheets
+  // Usar APENAS datas das sessões registadas no Controle de Carga
   var allTrainDates = [];
   DB.cargaSemana.forEach(function(s){
     if(s.data && allTrainDates.indexOf(s.data)<0) allTrainDates.push(s.data);
-  });
-  // Adicionar datas com confirmações do Sheets que não estão no Controle de Carga
-  Object.keys(_atletaPresencas).forEach(function(d){
-    if(allTrainDates.indexOf(d)<0) allTrainDates.push(d);
   });
   if(!allTrainDates.length) allTrainDates = DB.treinoDatas.slice();
   allTrainDates.sort();
 
   // Condensação: mostrar só últimas 10 sessões + percentual acumulado
-  var JANELA = 10;
+  var JANELA = 8;
   var totalSessoes = allTrainDates.length;
   var sessoesAnteriores = totalSessoes > JANELA ? allTrainDates.slice(0, totalSessoes - JANELA) : [];
   var sessoesVisiveis  = totalSessoes > JANELA ? allTrainDates.slice(totalSessoes - JANELA) : allTrainDates;
